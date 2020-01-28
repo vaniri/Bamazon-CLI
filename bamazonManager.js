@@ -17,8 +17,8 @@ db.connect(err => {
     storeOperation();
 });
 
-function storeOperation() {
-    inquirer
+async function storeOperation() {
+    let command = await inquirer
         .prompt({
             name: "answer",
             type: "list",
@@ -31,25 +31,24 @@ function storeOperation() {
                 { name: "EXIT", value: 4 }
             ]
         })
-        .then(command => {
-            switch (command.answer) {
-                case 0:
-                    showAllProd();
-                    break;
-                case 1:
-                    showLowInventory();
-                    break;
-                case 2:
-                    addToInventory();
-                    break;
-                case 3:
-                    addNewProd();
-                    break;
-                case 4:
-                    db.destroy();
-                    break;
-            }
-        });
+
+    switch (command.answer) {
+        case 0:
+            showAllProd();
+            break;
+        case 1:
+            showLowInventory();
+            break;
+        case 2:
+            addToInventory();
+            break;
+        case 3:
+            addNewProd();
+            break;
+        case 4:
+            db.destroy();
+            break;
+    }
 }
 
 function showAllProd() {
@@ -76,9 +75,9 @@ function showLowInventory() {
 }
 
 function addToInventory() {
-    db.query("SELECT * FROM products", (err, choices) => {
+    db.query("SELECT * FROM products", async (err, choices) => {
         if (err) { throw err; }
-        inquirer
+        let answer = await inquirer
             .prompt({
                 name: "product",
                 type: "list",
@@ -89,17 +88,16 @@ function addToInventory() {
                         value: item
                     }
                 })
-            })
-            .then(answer => {
-                console.log(`id:${answer.product.id} \nname: ${answer.product.product_name} \ndepartment: ${answer.product.department_name} \nprice: ${answer.product.price} \nquantity: ${answer.product.stock_quantity}`);
-                console.log("Update select product.");
-                productUpdate(answer.product);
-            })
+            });
+
+        console.log(`id:${answer.product.id} \nname: ${answer.product.product_name} \ndepartment: ${answer.product.department_name} \nprice: ${answer.product.price} \nquantity: ${answer.product.stock_quantity}`);
+        console.log("Update select product.");
+        productUpdate(answer.product);
     })
 }
 
-function productUpdate(product) {
-    inquirer
+async function productUpdate(product) {
+    let answer = await inquirer
         .prompt({
             name: "quantitie",
             type: "input",
@@ -107,18 +105,18 @@ function productUpdate(product) {
             validate: value => {
                 return !isNaN(value) && value > 0;
             }
-        })
-        .then(answer => {
-            db.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [answer.quantitie, product.id], err => {
-                if (err) { throw err; };
-                console.log("Product restock successfully!");
-                afterOperation();
-            })
-        })
+        });
+    db.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?",
+        [answer.quantitie, product.id],
+        err => {
+            if (err) { throw err; };
+            console.log("Product restock successfully!");
+            afterOperation();
+        });
 }
 
-function addNewProd() {
-    inquirer
+async function addNewProd() {
+    let answer = await inquirer
         .prompt([
             {
                 name: "name",
@@ -152,39 +150,36 @@ function addNewProd() {
                     return !isNaN(value) && value > 0;
                 }
             }
-        ])
-        .then(answer => {
-            db.query(
-                "INSERT INTO products SET ?",
-                {
-                    product_name: answer.name,
-                    department_name: answer.department,
-                    price: answer.price,
-                    stock_quantity: answer.quantity
-                },
-                (err => {
-                    if (err) throw err;
-                    console.log("New product was added successfully!");
-                    afterOperation();
-                })
-            )
-        })
+        ]);
+    db.query(
+        "INSERT INTO products SET ?",
+        {
+            product_name: answer.name,
+            department_name: answer.department,
+            price: answer.price,
+            stock_quantity: answer.quantity
+        },
+        err => {
+            if (err) throw err;
+            console.log("New product was added successfully!");
+            afterOperation();
+        }
+    );
 }
 
-function afterOperation() {
-    inquirer
+async function afterOperation() {
+    let answer = await inquirer
         .prompt({
             name: "answer",
             type: "list",
             message: " ",
             choices: ["NEW OPERATION", "EXIT"]
-        })
-        .then(answer => {
-            if (answer.answer === "EXIT") {
-                db.destroy();
-            } else {
-                storeOperation();
-            }
         });
+
+    if (answer.answer === "EXIT") {
+        db.destroy();
+    } else {
+        storeOperation();
+    }
 }
 
