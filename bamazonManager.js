@@ -27,7 +27,8 @@ function storeOperation() {
                 { name: "Products for Sale", value: 0 },
                 { name: "Low Inventory", value: 1 },
                 { name: "Add to inventory", value: 2 },
-                { name: "Add new products", value: 3 }
+                { name: "Add new products", value: 3 },
+                { name: "EXIT", value: 4 }
             ]
         })
         .then(command => {
@@ -44,6 +45,9 @@ function storeOperation() {
                 case 3:
                     addNewProd();
                     break;
+                case 4:
+                    db.destroy();
+                    break;
             }
         });
 }
@@ -54,6 +58,7 @@ function showAllProd() {
         items.forEach(item => {
             console.log(`${item.id} ${item.product_name} ${priceQuantity} price:${resetColor} ${item.price} ${priceQuantity} quantity:${resetColor} ${item.stock_quantity}`);
         })
+        afterOperation();
     });
 }
 
@@ -65,6 +70,7 @@ function showLowInventory() {
             items.forEach(item => {
                 console.log(`${item.id} ${item.product_name} ${priceQuantity} price:${resetColor} ${item.price} ${priceQuantity} quantity:${resetColor} ${item.stock_quantity}`);
             })
+            afterOperation();
         }
     )
 }
@@ -98,11 +104,87 @@ function productUpdate(product) {
             name: "quantitie",
             type: "input",
             message: "Add replenishment quantitie",
+            validate: value => {
+                return !isNaN(value) && value > 0;
+            }
         })
         .then(answer => {
             db.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?", [answer.quantitie, product.id], err => {
                 if (err) { throw err; };
                 console.log("Product restock successfully!");
+                afterOperation();
             })
         })
 }
+
+function addNewProd() {
+    inquirer
+        .prompt([
+            {
+                name: "name",
+                type: "input",
+                message: "Enter product name:",
+                validate: value => {
+                    return (value.length > 0);
+                }
+            },
+            {
+                name: "department",
+                type: "input",
+                message: "Enter the name of department",
+                validate: value => {
+                    return (value.length > 0);
+                }
+            },
+            {
+                name: "price",
+                type: "input",
+                message: "Enter product price",
+                validate: value => {
+                    return !isNaN(value) && value > 0;
+                }
+            },
+            {
+                name: "quantity",
+                type: "input",
+                message: "Enter product quantity",
+                validate: value => {
+                    return !isNaN(value) && value > 0;
+                }
+            }
+        ])
+        .then(answer => {
+            db.query(
+                "INSERT INTO products SET ?",
+                {
+                    product_name: answer.name,
+                    department_name: answer.department,
+                    price: answer.price,
+                    stock_quantity: answer.quantity
+                },
+                (err => {
+                    if (err) throw err;
+                    console.log("New product was added successfully!");
+                    afterOperation();
+                })
+            )
+        })
+}
+
+function afterOperation() {
+    inquirer
+        .prompt({
+            name: "answer",
+            type: "list",
+            message: " ",
+            choices: ["NEW OPERATION", "EXIT"]
+        })
+        .then(answer => {
+            if (answer.answer === "EXIT") {
+                db.destroy();
+            } else {
+                storeOperation();
+            }
+        });
+}
+
