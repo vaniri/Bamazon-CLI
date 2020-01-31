@@ -1,5 +1,6 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+const cTable = require("console.table");
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -8,9 +9,6 @@ const db = mysql.createConnection({
     password: "",
     database: "bamazon_db"
 });
-
-const priceQuantity = '\033[0;32m';
-const resetColor = '\033[0m';
 
 db.connect(err => {
     if (err) { throw err; }
@@ -22,7 +20,9 @@ async function storeOperation() {
         .prompt({
             name: "answer",
             type: "list",
-            message: "Choose the command:",
+            message: "\n-----------------------------------------------------------------" 
+            + "\nYou are in Bamazon Manader mode. Choose the command below:\n" 
+            + "-----------------------------------------------------------------\n",
             choices: [
                 { name: "Products for Sale", value: 0 },
                 { name: "Low Inventory", value: 1 },
@@ -54,25 +54,46 @@ async function storeOperation() {
 function showAllProd() {
     db.query("SELECT * FROM products", (err, items) => {
         if (err) { throw err; }
+        let itemsArr = [];
         items.forEach(item => {
-            console.log(`${item.id} ${item.product_name} ${priceQuantity} price:${resetColor} ${item.price} ${priceQuantity} quantity:${resetColor} ${item.stock_quantity}`);
-        })
-        afterOperation();
+            const itemObj = 
+                {
+                    id: item.id,
+                    name: item.product_name,
+                    department: item.department_name,
+                    price: item.price,
+                    quantity: item.stock_quantity
+                };
+                itemsArr.push(itemObj);
+            });
+
+            console.table(itemsArr);
+            afterOperation();
     });
+    
 }
 
 function showLowInventory() {
-    db.query(
-        "SELECT * FROM products WHERE stock_quantity < 5",
-        (err, items) => {
+    db.query("SELECT * FROM products WHERE stock_quantity < 5", (err, items) => {
             if (err) { throw err; }
+            let itemsArr = [];
             items.forEach(item => {
-                console.log(`${item.id} ${item.product_name} ${priceQuantity} price:${resetColor} ${item.price} ${priceQuantity} quantity:${resetColor} ${item.stock_quantity}`);
-            })
-            afterOperation();
-        }
-    )
+                const itemObj = 
+                    {
+                        id: item.id,
+                        name: item.product_name,
+                        department: item.department_name,
+                        price: item.price,
+                        quantity: item.stock_quantity
+                    };
+                    itemsArr.push(itemObj);
+                });
+    
+                console.table(itemsArr);
+                afterOperation();
+        });
 }
+
 
 function addToInventory() {
     db.query("SELECT * FROM products", async (err, choices) => {
