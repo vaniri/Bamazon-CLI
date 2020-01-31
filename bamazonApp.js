@@ -1,8 +1,9 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 
-const price = '\033[0;34m';
+const priceColor = '\033[0;34m';
 const outOfStock = '\033[0;31m';
+const thankForPerchColor = '\033[0;32m';
 const reset = '\033[0m';
 
 const db = mysql.createConnection({
@@ -18,23 +19,36 @@ db.connect(err => {
     startShopping();
 });
 
-function startShopping() {
-    db.query("SELECT * FROM products", (err, choices) => {
-        if (err) { throw err; }
-        runInquirer(choices);
-
-    });
+async function startShopping() {
+    let answer = await inquirer
+        .prompt({
+            name: "choice",
+            type: "list",
+            message: "\n-----------------------------------------------------------------" 
+            + "\nWelcome To The Bamazon!\n" 
+            + "-----------------------------------------------------------------\n",
+            choices: ["SEE ITEMS FOR SALE", "EXIT"]
+        })
+    if (answer.answer === "EXIT") {
+        db.destroy();
+    } else {
+        db.query("SELECT * FROM products", (err, choices) => {
+            if (err) { throw err; }
+            runInquirer(choices);
+        })
+    }
 }
+
 
 async function runInquirer(choices) {
     let answer = await inquirer
         .prompt({
             name: "choice",
             type: "list",
-            message: `Welcome to the Bamazon! Check our amazing items and buy what you like!\n`,
+            message: "Check our amazing items and buy what you like!\n",
             choices: choices.map(item => {
                 return {
-                    name: `* ${item.product_name} ${price}$$${item.price} ${reset}`,
+                    name: ` - ${item.product_name}, ${priceColor}PRICE:${reset} $${item.price}`,
                     value: item
                 }
             })
@@ -55,12 +69,13 @@ async function handleProduct(itemId, itemPrice) {
         [answer.quantity, itemId],
         err => {
             if (err) {
-                console.log(`${outOfStock} Sorry! The item is out of stock! ${reset}`);
+                console.log(outOfStock, "Sorry! The item is out of stock!", reset);
                 newPurchase();
             } else {
                 let totalPrice = itemPrice * answer.quantity;
-                console.log(`Total price: ${price} ${totalPrice} ${reset}`);
-                console.log("Thank you for your purchase!");
+                console.log(`\n----------------------------------------------------------------- \nTotal price: ${priceColor} ${totalPrice} ${reset}`);
+                saleTotal(totalPrice, itemId);
+                console.log(thankForPerchColor, "Thank you for your purchase!", reset);
                 newPurchase();
             }
         }
@@ -82,4 +97,13 @@ async function newPurchase() {
     }
 
 }
+
+function saleTotal(total, itemId) {
+    db.query(
+        "UPDATE products SET product_sales = product_sales + ? WHERE id = ?",
+        [total, itemId],
+        err => { if (err) throw err; }
+    )
+}
+
 
