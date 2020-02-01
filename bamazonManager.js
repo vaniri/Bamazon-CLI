@@ -1,6 +1,10 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
+const utils = require("./utils");
+
+const success = '\033[0;32m';
+const reset = '\033[0m';
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -21,7 +25,7 @@ async function storeOperation() {
             name: "answer",
             type: "list",
             message: "\n-----------------------------------------------------------------" 
-            + "\nYou are in Bamazon Manader mode. Choose the command below:\n" 
+            + "\nYou are in Bamazon Manager mode. Choose the command below:\n" 
             + "-----------------------------------------------------------------\n",
             choices: [
                 { name: "Products for Sale", value: 0 },
@@ -68,7 +72,7 @@ function showAllProd() {
             });
 
             console.table(itemsArr);
-            afterOperation();
+            utils.newOperation(storeOperation, db);
     });
     
 }
@@ -90,7 +94,7 @@ function showLowInventory() {
                 });
     
                 console.table(itemsArr);
-                afterOperation();
+                utils.newOperation(storeOperation, db);
         });
 }
 
@@ -131,8 +135,8 @@ async function productUpdate(product) {
         [answer.quantitie, product.id],
         err => {
             if (err) { throw err; };
-            console.log("Product restock successfully!");
-            afterOperation();
+            console.log(success, "Product restock successfully!", reset);
+            utils.newOperation(storeOperation, db);
         });
 }
 
@@ -182,25 +186,10 @@ async function addNewProd() {
         },
         err => {
             if (err) throw err;
-            console.log("New product was added successfully!");
-            afterOperation();
+            console.log(success, "New product was added successfully!", reset);
+            utils.newOperation(storeOperation, db);
         }
     );
 }
 
-async function afterOperation() {
-    let answer = await inquirer
-        .prompt({
-            name: "answer",
-            type: "list",
-            message: " ",
-            choices: ["NEW OPERATION", "EXIT"]
-        });
-
-    if (answer.answer === "EXIT") {
-        db.destroy();
-    } else {
-        storeOperation();
-    }
-}
 

@@ -52,10 +52,10 @@ async function runInquirer(choices) {
                 }
             })
         })
-    handleProduct(answer.choice.id, answer.choice.price);
+    handleProduct(answer.choice.id, answer.choice.price, answer.choice.stock_quantity);
 }
 
-async function handleProduct(itemId, itemPrice) {
+async function handleProduct(itemId, itemPrice, itemQuantity) {
     let answer = await inquirer
         .prompt({
             name: "quantity",
@@ -68,8 +68,13 @@ async function handleProduct(itemId, itemPrice) {
         [answer.quantity, itemId],
         err => {
             if (err) {
-                console.log(outOfStock, "Sorry! The item is out of stock!", reset);
-                newPurchase();
+                if (itemQuantity === 0) {
+                    console.log(`${outOfStock} Sorry! The item is out of stock! ${reset}`);
+                    newPurchase();
+                } else {
+                    console.log(`${outOfStock} Sorry! We have only ${itemQuantity} items left.${reset}`);
+                    newPurchase();
+                }
             } else {
                 let totalPrice = itemPrice * answer.quantity;
                 console.log(`\n----------------------------------------------------------------- \nTotal price: ${priceColor} ${totalPrice} ${reset}`);
