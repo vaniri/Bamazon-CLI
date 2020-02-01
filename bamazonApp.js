@@ -24,12 +24,12 @@ async function startShopping() {
         .prompt({
             name: "choice",
             type: "list",
-            message: "\n-----------------------------------------------------------------" 
-            + "\nWelcome To The Bamazon!\n" 
-            + "-----------------------------------------------------------------\n",
+            message: "\n-----------------------------------------------------------------"
+                + "\nWelcome To The Bamazon!\n"
+                + "-----------------------------------------------------------------\n",
             choices: ["SEE ITEMS FOR SALE", "EXIT"]
-        })
-    if (answer.answer === "EXIT") {
+        });
+    if (answer.choice === "EXIT") {
         db.destroy();
     } else {
         db.query("SELECT * FROM products", (err, choices) => {
@@ -38,7 +38,6 @@ async function startShopping() {
         })
     }
 }
-
 
 async function runInquirer(choices) {
     let answer = await inquirer
@@ -74,7 +73,7 @@ async function handleProduct(itemId, itemPrice) {
             } else {
                 let totalPrice = itemPrice * answer.quantity;
                 console.log(`\n----------------------------------------------------------------- \nTotal price: ${priceColor} ${totalPrice} ${reset}`);
-                saleTotal(totalPrice, itemId);
+                storeTotal(totalPrice, itemId);
                 console.log(thankForPerchColor, "Thank you for your purchase!", reset);
                 newPurchase();
             }
@@ -98,7 +97,7 @@ async function newPurchase() {
 
 }
 
-function saleTotal(total, itemId) {
+function storeTotal(total, itemId) {
     db.query(
         "UPDATE products SET product_sales = product_sales + ? WHERE id = ?",
         [total, itemId],
