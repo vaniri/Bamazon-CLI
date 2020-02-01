@@ -1,6 +1,10 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
+const utils = require("./utils");
+
+const success = '\033[0;32m';
+const reset = '\033[0m';
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -45,12 +49,14 @@ async function storeOperation() {
 }
 
 function showDepart() {
-    db.query("SELECT department_id, departments.department_name, over_head_cost, SUM(product_sales) AS product_sales, " +
-        "SUM(product_sales) - over_head_cost AS total_profit " +
-        "FROM departments INNER JOIN products ON departments.department_name = products.department_name " +
-        "GROUP BY department_id", (err, items) => {
+    db.query("SELECT department_id, departments.department_name, over_head_cost, " +
+        "COALESCE(SUM(product_sales), 0) AS product_sales, " +
+        "COALESCE(SUM(product_sales), 0) - over_head_cost AS total_profit " +
+        "FROM departments " +
+        "LEFT OUTER JOIN products ON departments.department_name = products.department_name " +
+        "GROUP BY department_id",
+        (err, items) => {
             if (err) { throw err; }
-            console.log(items);
             let itemsArr = [];
             items.forEach(item => {
                 const itemObj =
@@ -60,12 +66,45 @@ function showDepart() {
                     over_head_cost: item.over_head_cost,
                     product_sales: item.product_sales,
                     total_profit: item.total_profit
-
                 };
                 itemsArr.push(itemObj);
             });
 
             console.table(itemsArr);
+            utils.newOperation(storeOperation, db);
         });
+}
 
+async function createDepart() {
+    let answer = await inquirer
+        .prompt([
+            {
+                name: "name",
+                type: "input",
+                message: "Enter department name:",
+                validate: value => {
+                    return (value.length > 0);
+                }
+            },
+            {
+                name: "price",
+                type: "input",
+                message: "Enter product over_head_cost",
+                validate: value => {
+                    return !isNaN(value) && value > 0;
+                }
+            }
+        ]);
+    db.query(
+        "INSERT INTO departments SET ?",
+        {
+            department_name: answer.name,
+            over_head_cost: answer.price,
+        },
+        err => {
+            if (err) throw err;
+            console.log(success, "New department was added successfully!", reset);
+            utils.newOperation(storeOperation, db);
+        }
+    );
 }
