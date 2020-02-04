@@ -1,9 +1,10 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+const utils = require("./utils");
 
 const priceColor = '\033[0;34m';
 const outOfStock = '\033[0;31m';
-const thankForPerchColor = '\033[0;32m';
+const thankForPurchColor = '\033[0;32m';
 const reset = '\033[0m';
 
 const db = mysql.createConnection({
@@ -32,10 +33,11 @@ async function startShopping() {
     if (answer.choice === "EXIT") {
         db.destroy();
     } else {
-        db.query("SELECT * FROM products", (err, choices) => {
+        db.query("SELECT * FROM products", (err, products) => {
             if (err) { throw err; }
-            runInquirer(choices);
-        })
+            utils.showProducts(products);
+            runInquirer(products);
+        });
     }
 }
 
@@ -76,10 +78,10 @@ async function handleProduct(itemId, itemPrice, itemQuantity) {
                     newPurchase();
                 }
             } else {
-                let totalPrice = itemPrice * answer.quantity;
+                let totalPrice = Math.round(itemPrice * answer.quantity * 100) / 100;
                 console.log(`\n----------------------------------------------------------------- \nTotal price: ${priceColor} ${totalPrice} ${reset}`);
                 storeTotal(totalPrice, itemId);
-                console.log(thankForPerchColor, "Thank you for your purchase!", reset);
+                console.log(thankForPurchColor, "Thank you for your purchase!", reset);
                 newPurchase();
             }
         }
@@ -87,19 +89,8 @@ async function handleProduct(itemId, itemPrice, itemQuantity) {
 }
 
 async function newPurchase() {
-    let answer = await inquirer
-        .prompt({
-            name: "answer",
-            type: "list",
-            message: " ",
-            choices: ["BACK TO THE STORE", "EXIT"]
-        })
-    if (answer.answer === "EXIT") {
-        db.destroy();
-    } else {
-        startShopping();
-    }
-
+    let choices = ["BACK TO THE STORE", "EXIT"];
+    utils.handleExit(startShopping, db, choices);
 }
 
 function storeTotal(total, itemId) {
@@ -109,5 +100,3 @@ function storeTotal(total, itemId) {
         err => { if (err) throw err; }
     )
 }
-
-

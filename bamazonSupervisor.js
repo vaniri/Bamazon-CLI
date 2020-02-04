@@ -14,7 +14,6 @@ const db = mysql.createConnection({
     database: "bamazon_db"
 });
 
-
 db.connect(err => {
     if (err) { throw err; }
     storeOperation();
@@ -57,20 +56,17 @@ function showDepart() {
         "GROUP BY department_id",
         (err, items) => {
             if (err) { throw err; }
-            let itemsArr = [];
-            items.forEach(item => {
-                const itemObj =
-                {
+            let productsRows = items.map(item => {
+                return {
                     department_id: item.department_id,
                     department_name: item.department_name,
                     over_head_cost: item.over_head_cost,
                     product_sales: item.product_sales,
                     total_profit: item.total_profit
                 };
-                itemsArr.push(itemObj);
             });
 
-            console.table(itemsArr);
+            console.table(productsRows);
             utils.newOperation(storeOperation, db);
         });
 }
@@ -89,7 +85,7 @@ async function createDepart() {
             {
                 name: "price",
                 type: "input",
-                message: "Enter product over_head_cost",
+                message: "Enter overhead cost:",
                 validate: value => {
                     return !isNaN(value) && value > 0;
                 }

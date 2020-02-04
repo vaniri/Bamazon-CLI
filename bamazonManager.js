@@ -1,8 +1,6 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
-const cTable = require("console.table");
 const utils = require("./utils");
-
 const success = '\033[0;32m';
 const reset = '\033[0m';
 
@@ -24,9 +22,9 @@ async function storeOperation() {
         .prompt({
             name: "answer",
             type: "list",
-            message: "\n-----------------------------------------------------------------" 
-            + "\nYou are in Bamazon Manager mode. Choose the command below:\n" 
-            + "-----------------------------------------------------------------\n",
+            message: "\n-----------------------------------------------------------------"
+                + "\nYou are in Bamazon Manager mode. Choose the command below:\n"
+                + "-----------------------------------------------------------------\n",
             choices: [
                 { name: "Products for Sale", value: 0 },
                 { name: "Low Inventory", value: 1 },
@@ -38,7 +36,7 @@ async function storeOperation() {
 
     switch (command.answer) {
         case 0:
-            showAllProd();
+            showProducts();
             break;
         case 1:
             showLowInventory();
@@ -55,49 +53,21 @@ async function storeOperation() {
     }
 }
 
-function showAllProd() {
-    db.query("SELECT * FROM products", (err, items) => {
+function showProducts() {
+    db.query("SELECT * FROM products", (err, products) => {
         if (err) { throw err; }
-        let itemsArr = [];
-        items.forEach(item => {
-            const itemObj = 
-                {
-                    id: item.id,
-                    name: item.product_name,
-                    department: item.department_name,
-                    price: item.price,
-                    quantity: item.stock_quantity
-                };
-                itemsArr.push(itemObj);
-            });
-
-            console.table(itemsArr);
-            utils.newOperation(storeOperation, db);
+        utils.showProducts(products);
+        newOperation();
     });
-    
 }
 
 function showLowInventory() {
     db.query("SELECT * FROM products WHERE stock_quantity < 5", (err, items) => {
-            if (err) { throw err; }
-            let itemsArr = [];
-            items.forEach(item => {
-                const itemObj = 
-                    {
-                        id: item.id,
-                        name: item.product_name,
-                        department: item.department_name,
-                        price: item.price,
-                        quantity: item.stock_quantity
-                    };
-                    itemsArr.push(itemObj);
-                });
-    
-                console.table(itemsArr);
-                utils.newOperation(storeOperation, db);
-        });
+        if (err) { throw err; }
+        utils.showProducts(items);
+        newOperation();
+    });
 }
-
 
 function addToInventory() {
     db.query("SELECT * FROM products", async (err, choices) => {
@@ -106,7 +76,7 @@ function addToInventory() {
             .prompt({
                 name: "product",
                 type: "list",
-                message: "Select product!",
+                message: "Select product:",
                 choices: choices.map(item => {
                     return {
                         name: `* ${item.product_name}`,
@@ -124,19 +94,19 @@ function addToInventory() {
 async function productUpdate(product) {
     let answer = await inquirer
         .prompt({
-            name: "quantitie",
+            name: "quantity",
             type: "input",
-            message: "Add replenishment quantitie",
+            message: "Add restocking quantity",
             validate: value => {
                 return !isNaN(value) && value > 0;
             }
         });
     db.query("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?",
-        [answer.quantitie, product.id],
+        [answer.quantity, product.id],
         err => {
             if (err) { throw err; };
-            console.log(success, "Product restock successfully!", reset);
-            utils.newOperation(storeOperation, db);
+            console.log(success, "Product restocked successfully!", reset);
+            newOperation();
         });
 }
 
@@ -154,7 +124,7 @@ async function addNewProd() {
             {
                 name: "department",
                 type: "input",
-                message: "Enter the name of department",
+                message: "Enter department name:",
                 validate: value => {
                     return (value.length > 0);
                 }
@@ -162,7 +132,7 @@ async function addNewProd() {
             {
                 name: "price",
                 type: "input",
-                message: "Enter product price",
+                message: "Enter product price:",
                 validate: value => {
                     return !isNaN(value) && value > 0;
                 }
@@ -170,7 +140,7 @@ async function addNewProd() {
             {
                 name: "quantity",
                 type: "input",
-                message: "Enter product quantity",
+                message: "Enter product quantity:",
                 validate: value => {
                     return !isNaN(value) && value > 0;
                 }
@@ -187,9 +157,12 @@ async function addNewProd() {
         err => {
             if (err) throw err;
             console.log(success, "New product was added successfully!", reset);
-            utils.newOperation(storeOperation, db);
+            newOperation();
         }
     );
 }
 
-
+function newOperation() {
+    let choices = ["NEW OPERATION", "EXIT"];
+    utils.handleExit(storeOperation, db, choices);
+}
