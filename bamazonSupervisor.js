@@ -67,7 +67,7 @@ function showDepart() {
             });
 
             console.table(productsRows);
-            utils.newOperation(storeOperation, db);
+            afterOperation();
         });
 }
 
@@ -100,7 +100,12 @@ async function createDepart() {
         err => {
             if (err) throw err;
             console.log(success, "New department was added successfully!", reset);
-            utils.newOperation(storeOperation, db);
+            afterOperation();
         }
     );
+}
+
+function afterOperation() {
+    let choices = ["NEW OPERATION", "EXIT"];
+    utils.handleExit(storeOperation, db, choices);
 }
